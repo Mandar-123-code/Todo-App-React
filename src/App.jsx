@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios"; // for HTTP requests
+import axios from "axios";
 import Navbar from "./components/Navbar";
 import { FaEdit } from "react-icons/fa";
 import { AiFillDelete } from "react-icons/ai";
@@ -10,14 +10,16 @@ function App() {
   const [description, setDescription] = useState("");
   const [todos, setTodos] = useState([]);
 
-  // Load todos from backend
+  // eslint-disable-next-line no-undef
+  const API_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     fetchTodos();
   }, []);
 
   const fetchTodos = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/todos");
+      const res = await axios.get(`${API_URL}/todos`);
       setTodos(res.data);
     } catch (err) {
       console.error("Error fetching todos:", err);
@@ -27,7 +29,7 @@ function App() {
   const handleAdd = async () => {
     if (!title) return;
     try {
-      await axios.post("http://localhost:5000/todos", {
+      await axios.post(`${API_URL}/todos`, {
         title,
         description,
         isCompleted: false,
@@ -48,7 +50,7 @@ function App() {
 
   const handleDelete = async (todo) => {
     try {
-      await axios.delete(`http://localhost:5000/todos/${todo._id}`);
+      await axios.delete(`${API_URL}/todos/${todo._id}`);
       fetchTodos();
     } catch (err) {
       console.error("Error deleting todo:", err);
@@ -57,12 +59,10 @@ function App() {
 
   const handleCheckbox = async (todo) => {
     try {
-      // update backend
-      await axios.put(`http://localhost:5000/todos/${todo._id}`, {
+      await axios.put(`${API_URL}/todos/${todo._id}`, {
         isCompleted: !todo.isCompleted,
       });
 
-      // update local state instantly
       setTodos((prev) =>
         prev.map((t) =>
           t._id === todo._id ? { ...t, isCompleted: !t.isCompleted } : t,
@@ -88,10 +88,8 @@ function App() {
         <h1 className="font-bold text-center text-3xl mb-4 tracking-wide">
           iTask - Manage your todos at one place
         </h1>
-
         <div className="addTodo my-5 flex flex-col gap-4 bg-white p-5 rounded-xl shadow-xl border border-gray-200">
           <h2 className="text-2xl font-bold">Add a Todo</h2>
-
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -138,7 +136,6 @@ function App() {
               className="todo relative bg-white p-4 rounded-xl shadow-md hover:shadow-xl transition-all border border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between sm:text-sm"
             >
               <div className="flex flex-row items-center gap-3 w-full">
-                {/* Checkbox */}
                 <input
                   name={item._id}
                   onChange={() => handleCheckbox(item)}
@@ -147,7 +144,6 @@ function App() {
                   className="scale-125 cursor-pointer accent-violet-600 rounded transition flex-shrink-0"
                 />
 
-                {/* Title, Description & Status */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full justify-between">
                   <div
                     className={
@@ -162,7 +158,6 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Status Badge */}
                   <span
                     className={
                       item.isCompleted
@@ -175,7 +170,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Buttons */}
               <div className="buttons flex flex-wrap sm:flex-row gap-4 mt-4 sm:mt-0 sm:ml-4 justify-center sm:justify-start">
                 <button
                   onClick={(e) => handleEdit(e, item)}
