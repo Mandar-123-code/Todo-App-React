@@ -11,7 +11,7 @@ function App() {
   const [todos, setTodos] = useState([]);
 
   // Vite environment variable
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_API_URL.replace(/\/$/, "");
 
   useEffect(() => {
     fetchTodos();
