@@ -1,70 +1,76 @@
 import { useState, useEffect } from "react";
+import axios from "axios"; // for HTTP requests
 import Navbar from "./components/Navbar";
-import { v4 as uuidv4 } from "uuid";
 import { FaEdit } from "react-icons/fa";
 import { AiFillDelete } from "react-icons/ai";
 import TodoIcon from "./assets/Todo.svg";
 
 function App() {
-  const [todo, setTodo] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [todos, setTodos] = useState([]);
-  const [showFinished, setshowFinished] = useState(false);
 
+  // Load todos from backend
   useEffect(() => {
-    let todoString = localStorage.getItem("todos");
-    console.log("Retrieved from localStorage:", todoString);
-
-    if (todoString) {
-      try {
-        let todos = JSON.parse(todoString);
-        setTodos(todos);
-      } catch (error) {
-        console.error("Error parsing JSON:", error);
-      }
-    }
+    fetchTodos();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("todos", JSON.stringify(todos));
-  }, [todos]);
-
-  const toggleFinished = () => {
-    setshowFinished(!showFinished);
+  const fetchTodos = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/todos");
+      setTodos(res.data);
+    } catch (err) {
+      console.error("Error fetching todos:", err);
+    }
   };
 
-  const handleEdit = (e, id) => {
-    let t = todos.filter((i) => i.id === id);
-    setTodo(t[0].todo);
-    let newTodos = todos.filter((item) => {
-      return item.id !== id;
-    });
-    setTodos(newTodos);
+  const handleAdd = async () => {
+    if (!title) return;
+    try {
+      await axios.post("http://localhost:5000/todos", {
+        title,
+        description,
+        isCompleted: false,
+      });
+      setTitle("");
+      setDescription("");
+      fetchTodos();
+    } catch (err) {
+      console.error("Error adding todo:", err);
+    }
   };
 
-  const handleDelete = (e, id) => {
-    let newTodos = todos.filter((item) => {
-      return item.id !== id;
-    });
-    setTodos(newTodos);
+  const handleEdit = (e, todo) => {
+    setTitle(todo.title);
+    setDescription(todo.description);
+    setTodos(todos.filter((t) => t._id !== todo._id));
   };
 
-  const handleAdd = () => {
-    setTodos([...todos, { id: uuidv4(), todo, isCompleted: false }]);
-    setTodo("");
+  const handleDelete = async (todo) => {
+    try {
+      await axios.delete(`http://localhost:5000/todos/${todo._id}`);
+      fetchTodos();
+    } catch (err) {
+      console.error("Error deleting todo:", err);
+    }
   };
 
-  const handleChange = (e) => {
-    setTodo(e.target.value);
-  };
+  const handleCheckbox = async (todo) => {
+    try {
+      // update backend
+      await axios.put(`http://localhost:5000/todos/${todo._id}`, {
+        isCompleted: !todo.isCompleted,
+      });
 
-  const handleCheckbox = (e) => {
-    let id = e.target.name;
-    let index = todos.findIndex((item) => {
-      return item.id === id;
-    });
-    let newTodos = [...todos];
-    newTodos[index].isCompleted = !newTodos[index].isCompleted;
-    setTodos(newTodos);
+      // update local state instantly
+      setTodos((prev) =>
+        prev.map((t) =>
+          t._id === todo._id ? { ...t, isCompleted: !t.isCompleted } : t,
+        ),
+      );
+    } catch (err) {
+      console.error("Error updating todo:", err);
+    }
   };
 
   return (
@@ -86,49 +92,36 @@ function App() {
         <div className="addTodo my-5 flex flex-col gap-4 bg-white p-5 rounded-xl shadow-xl border border-gray-200">
           <h2 className="text-2xl font-bold">Add a Todo</h2>
 
-          <div className="flex flex-col sm:flex-row gap-3 items-center">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleAdd();
-              }}
-              className="w-full flex flex-col sm:flex-row gap-3 items-center"
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAdd();
+            }}
+            className="w-full flex flex-col sm:flex-row gap-3 items-center"
+          >
+            <input
+              type="text"
+              placeholder="Enter Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="flex-1 rounded-full px-5 py-2 border border-gray-300 shadow-sm focus:ring-2 focus:ring-violet-500 outline-none w-full"
+            />
+            <input
+              type="text"
+              placeholder="Enter Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="flex-1 rounded-full px-5 py-2 border border-gray-300 shadow-sm focus:ring-2 focus:ring-violet-500 outline-none w-full"
+            />
+            <button
+              type="submit"
+              disabled={title.length <= 0}
+              className="bg-violet-800 hover:bg-violet-950 px-6 py-2 text-sm disabled:bg-violet-700 font-bold text-white rounded-full cursor-pointer transition-all mt-2 sm:mt-0"
             >
-              <input
-                onChange={handleChange}
-                value={todo}
-                type="text"
-                className="flex-1 rounded-full px-5 py-2 border border-gray-300 shadow-sm 
-               focus:ring-2 focus:ring-violet-500 outline-none w-full"
-              />
-
-              <button
-                type="submit"
-                disabled={todo.length <= 0}
-                className="bg-violet-800 hover:bg-violet-950 px-6 py-2 text-sm 
-               disabled:bg-violet-700 font-bold text-white rounded-full 
-               cursor-pointer transition-all mt-2 sm:mt-0"
-              >
-                Save
-              </button>
-            </form>
-          </div>
+              Save
+            </button>
+          </form>
         </div>
-
-        <div className="flex items-center gap-2 my-4 flex-wrap">
-          <input
-            id="show"
-            onChange={toggleFinished}
-            type="checkbox"
-            checked={showFinished}
-            className="cursor-pointer size-5"
-          />
-          <label className="mx-2 text-lg" htmlFor="show">
-            Show only completed tasks
-          </label>
-        </div>
-
-        <div className="h-[2px] bg-gray-700 w-[90%] my-3 mx-auto opacity-20"></div>
 
         <h2 className="text-2xl font-bold mb-3">Your Todos :</h2>
 
@@ -139,85 +132,67 @@ function App() {
             </div>
           )}
 
-          {todos.filter((item) => item.isCompleted === showFinished).length ===
-            0 &&
-            todos.length > 0 && (
-              <div className="m-5 text-gray-600 text-center text-lg">
-                {showFinished ? "No completed tasks!" : "No todos to finish!"}
-              </div>
-            )}
+          {todos.map((item) => (
+            <div
+              key={item._id}
+              className="todo relative bg-white p-4 rounded-xl shadow-md hover:shadow-xl transition-all border border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between sm:text-sm"
+            >
+              <div className="flex flex-row items-center gap-3 w-full">
+                {/* Checkbox */}
+                <input
+                  name={item._id}
+                  onChange={() => handleCheckbox(item)}
+                  type="checkbox"
+                  checked={item.isCompleted}
+                  className="scale-125 cursor-pointer accent-violet-600 rounded transition flex-shrink-0"
+                />
 
-          {todos
-            .filter((item) => item.isCompleted === showFinished)
-            .map((item) => {
-              return (
-                <div
-                  key={item.id}
-                  className="todo relative bg-white p-4 rounded-xl shadow-md hover:shadow-xl transition-all border border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between sm:text-sm"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 pb-4 sm:pb-0">
-                    <span
-                      className="
-      scale-125
-      cursor-pointer
-      select-none
-      font-medium
-      hover:text-violet-700
-      transition
-      text-violet-600
-      accent-violet-600
-      rounded
-      text-sm
-      sm:text-base
-      md:text-base
-      text-center
-      sm:text-left
-      md:text-left
-      w-full
-      sm:w-auto
-      p-4
-
-    "
-                    >
-                      Mark as Done
-                    </span>
-
-                    <input
-                      name={item.id}
-                      onChange={handleCheckbox}
-                      type="checkbox"
-                      checked={item.isCompleted}
-                      className="scale-125 mt-1 cursor-pointer accent-violet-600 rounded transition"
-                    />
-
-                    <div
-                      className={
-                        item.isCompleted
-                          ? "line-through text-gray-500 mt-2 sm:mt-0"
-                          : "text-gray-800 mt-2 sm:mt-0"
-                      }
-                    >
-                      {item.todo}
+                {/* Title, Description & Status */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full justify-between">
+                  <div
+                    className={
+                      item.isCompleted
+                        ? "line-through text-gray-500"
+                        : "text-gray-800"
+                    }
+                  >
+                    <strong>{item.title}</strong>
+                    <div className="text-gray-600 text-sm">
+                      {item.description}
                     </div>
                   </div>
-                  <div className="buttons flex flex-col sm:flex-row gap-4 mt-4 sm:mt-0 sm:ml-4 flex-shrink-0">
-                    <button
-                      onClick={(e) => handleEdit(e, item.id)}
-                      className="bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-bold text-white rounded-md flex items-center gap-2 transition w-full sm:w-auto justify-center sm:justify-start"
-                    >
-                      <FaEdit /> Edit
-                    </button>
 
-                    <button
-                      onClick={(e) => handleDelete(e, item.id)}
-                      className="bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-bold text-white rounded-md flex items-center gap-2 transition w-full sm:w-auto justify-center sm:justify-start"
-                    >
-                      <AiFillDelete /> Delete
-                    </button>
-                  </div>
+                  {/* Status Badge */}
+                  <span
+                    className={
+                      item.isCompleted
+                        ? "bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold"
+                        : "bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold"
+                    }
+                  >
+                    {item.isCompleted ? "Completed" : "Pending"}
+                  </span>
                 </div>
-              );
-            })}
+              </div>
+
+              {/* Buttons */}
+              <div className="buttons flex flex-wrap sm:flex-row gap-4 mt-4 sm:mt-0 sm:ml-4 justify-center sm:justify-start">
+                <button
+                  onClick={(e) => handleEdit(e, item)}
+                  className="bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-bold text-white rounded-md flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start"
+                >
+                  <FaEdit /> Edit
+                </button>
+
+                <button
+                  onClick={() => handleDelete(item)}
+                  className="bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-bold text-white rounded-md flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start"
+                >
+                  <AiFillDelete /> Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </>
