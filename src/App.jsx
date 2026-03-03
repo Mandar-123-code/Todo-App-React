@@ -10,7 +10,7 @@ function App() {
   const [description, setDescription] = useState("");
   const [todos, setTodos] = useState([]);
 
-  // eslint-disable-next-line no-undef
+  // Vite environment variable
   const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
@@ -23,6 +23,8 @@ function App() {
       setTodos(res.data);
     } catch (err) {
       console.error("Error fetching todos:", err);
+      alert("Unable to fetch todos. Please check your backend or network.");
+      setTodos([]);
     }
   };
 
@@ -39,6 +41,7 @@ function App() {
       fetchTodos();
     } catch (err) {
       console.error("Error adding todo:", err);
+      alert("Unable to add todo. Please try again.");
     }
   };
 
@@ -54,6 +57,7 @@ function App() {
       fetchTodos();
     } catch (err) {
       console.error("Error deleting todo:", err);
+      alert("Unable to delete todo. Please try again.");
     }
   };
 
@@ -62,7 +66,6 @@ function App() {
       await axios.put(`${API_URL}/todos/${todo._id}`, {
         isCompleted: !todo.isCompleted,
       });
-
       setTodos((prev) =>
         prev.map((t) =>
           t._id === todo._id ? { ...t, isCompleted: !t.isCompleted } : t,
@@ -70,6 +73,7 @@ function App() {
       );
     } catch (err) {
       console.error("Error updating todo:", err);
+      alert("Unable to update todo status. Please try again.");
     }
   };
 
@@ -88,6 +92,7 @@ function App() {
         <h1 className="font-bold text-center text-3xl mb-4 tracking-wide">
           iTask - Manage your todos at one place
         </h1>
+
         <div className="addTodo my-5 flex flex-col gap-4 bg-white p-5 rounded-xl shadow-xl border border-gray-200">
           <h2 className="text-2xl font-bold">Add a Todo</h2>
           <form
@@ -143,7 +148,6 @@ function App() {
                   checked={item.isCompleted}
                   className="scale-125 cursor-pointer accent-violet-600 rounded transition flex-shrink-0"
                 />
-
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full justify-between">
                   <div
                     className={
@@ -157,7 +161,6 @@ function App() {
                       {item.description}
                     </div>
                   </div>
-
                   <span
                     className={
                       item.isCompleted
